@@ -32,7 +32,8 @@ def draw_bars(canvas, data, highlight=(), done=False):
 def start_sort():
     global sorting
     if sorting is None:  # ignore clicks while already sorting
-        sorting = bubble_sort(data)
+        sort_function = ALGORITHMS[algorithm_choice.get()]
+        sorting = sort_function(data)
         step()
 
 def new_array():
@@ -50,17 +51,31 @@ def bubble_sort(data):
                 data[j], data[j + 1] = data[j + 1], data[j]
             yield (j, j + 1)
             
+def insertion_sort(data):
+    #Take each bar and slide it left until it is in the right place
+    for i in range(1, len(data)): #use len for dynamic changes potentialy later
+        j = i
+        while j > 0 and data[j - 1] > data[j]:
+            data[j - 1], data[j] = data[j], data[j - 1]
+            yield (j - 1, j)
+            j -= 1
+            
 def step():
     #Advance the sort by one comparison, redraw, and schedule the next step
     global sorting#sets the sorting status
     try:
         highlight = next(sorting)
         draw_bars(canvas, data, highlight)
-        root.after(DELAY_MS, step)
+        root.after(speed.get(), step) #added dynamic delay using speed slider
     except StopIteration:
         draw_bars(canvas, data, done=True)
         sorting = None
 
+#dictionary of algorithms 
+ALGORITHMS = {
+    "Bubble sort": bubble_sort,
+    "Insertion sort": insertion_sort,
+}
 
 root = tk.Tk()
 root.title("Algorithm Visualiser")
@@ -70,8 +85,16 @@ canvas.pack()
 
 controls = tk.Frame(root)
 controls.pack(pady=10)
+
+algorithm_choice = tk.StringVar(value="Bubble sort")
+tk.OptionMenu(controls, algorithm_choice, *ALGORITHMS).pack(side="left", padx=5)
+
+speed = tk.Scale(controls, from_=1, to=200, orient="horizontal", label="Delay (ms)")
+speed.set(DELAY_MS)
+speed.pack(side="left", padx=5)
+
 tk.Button(controls, text="New array", command=new_array).pack(side="left", padx=5)
-tk.Button(controls, text="Bubble sort", command=start_sort).pack(side="left", padx=5)
+tk.Button(controls, text="Sort", command=start_sort).pack(side="left", padx=5)
 
 data = generate_data()
 draw_bars(canvas, data)
